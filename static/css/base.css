@@ -1,0 +1,23 @@
+.navbar-transparent {
+  /* Se volessi cambiare colore di sfondo della navbar */
+  background-color: #1e1e1e;
+}
+
+body {
+    background-color: #1e1e1e !important;
+    color: #f5f5f5; 
+}
+
+
+/* Elementi da animare */
+.fade-in {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+/* Stato quando l'elemento è visibile */
+.fade-in.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
