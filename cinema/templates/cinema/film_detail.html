@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="row">
+        <div class="col-md-4">
+        {% if film.locandina_url %}
+            <img src="{{ film.locandina_url }}"
+                alt="Locandina di {{ film.titolo }}"
+                class="img-fluid rounded mb-3">
+        {% else %}
+            <div class="text-muted">Nessuna locandina disponibile</div>
+        {% endif %}
+        </div>
+
+        <div class="col-md-8 testo-film">
+            <h2 class="h2 fw-bold text-uppercase mb-4 text-danger">
+              {{ film.titolo }}
+            </h2>
+            <p><strong>Regia:</strong> {{ film.regista }}</p>
+            <p><strong>Cast:</strong> {{ film.cast_principale }}</p>
+            <p><strong>Durata:</strong> {{ film.durata_minuti }}min</p>
+            <p><strong>Genere:</strong> {{ film.genere }}</p>
+            <p><strong>Anno di uscita:</strong> {{ film.data_uscita }}</p>
+            <p><strong>Descrizione:</strong><br> {{ film.descrizione }}</p>
+
+            <div class="d-grid gap-2 ">
+                <a class="btn btn-danger btn-lg" href="{% url 'cinema:proiezione_crea' film.id %}">Gestisci proiezioni</a>
+                <a class="btn btn-danger btn-lg" href="{% url 'cinema:film_modifica' film.id %}">Modifica film</a>
+                <a class="btn btn-danger btn-lg" href="{% url 'cinema:film_elimina' film.id %}">Elimina film</a>
+            </div>
+        </div>
+
+        <div class="col-12 mt-4">
+            
+        </div>
+    </div>
+
+    {% if film.in_programmazione <= today %}
+        <h2 class="mt-5">Proiezioni disponibili</h2>
+        {% if proiezioni %}
+            <ul class="list-group">
+                {% for proiezione in proiezioni %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center bg-dark text-white border-secondary">
+                        <div>
+                            <strong>Data e ora:</strong> {{ proiezione.data_ora|date:"d/m/Y H:i" }}<br>
+                            <strong>Sala:</strong> {{ proiezione.sala.nome }}<br>
+                            
+                        </div>
+
+                        <a href="{% url 'sales:prenota' proiezione.id %}" class="btn btn-primary">Prenota</a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="text-muted">Nessuna proiezione disponibile per questo film.</p>
+        {% endif %}
+    {% endif %}
+
+    <h2 class="mt-5">Trailer</h2>
+    <center>
+        <div class="ratio ratio-16x9">
+            <iframe
+                src="{{ film.trailer_embed_url}}"
+                title="Trailer"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowfullscreen>
+            </iframe>
+        </div>
+    </center>
+{% endblock %}

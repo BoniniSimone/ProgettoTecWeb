@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Info{% endblock %}
+
+{% block content %}
+    <center>
+        <div class="wrapper fade-in">
+            <section class="info-card">
+                <h1>Info</h1>
+                <p>Benvenuto nella nostra pagina info. Qui troverai tutti i dettagli sui nostri servizi e la nostra missione per offrire soluzioni innovative.</p>
+            </section>
+            <img src="{% static 'imgs/cinepiu-correggio.jpg' %}" alt="Info Image" class="info-image">
+        </div>
+        <br></br>
+        <div class="fade-in">
+            <h2>Dove siamo:</h2>
+            <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d5665.071548915698!2d10.764634375495213!3d44.76988147949729!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x477ff4f0ebd5e2f1%3A0xfac757a9d7668d84!2sCinepi%C3%B9%20Correggio!5e0!3m2!1sit!2sit!4v1766857166702!5m2!1sit!2sit" width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+        </div>
+        
+    </center>
+
+{%endblock%}

@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+  {# BARRA DI RICERCA #}
+  {% if request.resolver_match.url_name == "film_gestisci" %}
+    <form method="get" class="d-flex justify-content-center mt-0 mb-5 fade-in" style="position: relative; z-index: 99998;">
+      <div class="input-group w-100 position-relative" style="max-width: 520px;">
+        <input
+          id="id_q"
+          type="search"
+          name="q"
+          value="{{ request.GET.q|default:'' }}"
+          class="form-control"
+          placeholder="Cerca un film..."
+          autocomplete="off"
+          style="border-radius: 999px 0 0 999px; padding: 0.8rem 1.2rem;"
+        />
+
+        <button
+          type="submit"
+          class="btn btn-danger"
+          style="border-radius: 0 999px 999px 0; padding: 0.8rem 1.2rem;"
+        >
+          Cerca
+        </button>
+
+        <!-- BOX SUGGERIMENTI -->
+        <div id="film-suggestions"
+            class="list-group position-absolute w-100 mt-1"
+            style="top:100%; left:0; z-index:99999; display:none;">
+        </div>
+      </div>
+    </form>
+  {% endif %}
+
+  
+
+  {% if films %}
+    {% for film in films %}
+      <div class="row g-4 align-items-start mb-5 fade-in" style="position: relative; z-index: 1;">
+        <div class="col-12 col-md-5 col-lg-4">
+          <a href="{% url 'cinema:film_detail' film.pk %}" class="d-block">
+            <div class="rounded-1 overflow-hidden" style="aspect-ratio: 2 / 3;">
+              <img src="{{ film.locandina_url }}" alt="Locandina {{ film.titolo }}"
+                  class="w-100 h-100 d-block" style="object-fit: cover;" loading="lazy">
+            </div>
+          </a>
+        </div>
+
+        <div class="col-12 col-md-7 col-lg-8">
+          <h2 class="h2 fw-bold text-uppercase mb-4">
+            <a href="{% url 'cinema:film_detail' film.pk %}" class="text-danger text-decoration-none">
+              {{ film.titolo }}
+            </a>
+          </h2>
+          <div class="col-md-8 testo-film">
+            <p><strong>Regia:</strong> {{ film.regista }}</p>
+            <p><strong>Cast:</strong> {{ film.cast_principale }}</p>
+            <p><strong>Durata:</strong> {{ film.durata_minuti }}min</p>
+            <p><strong>Genere:</strong> {{ film.genere }}</p>
+            <p><strong>Anno di uscita:</strong> {{ film.data_uscita }}</p>
+            <p><strong>Descrizione:</strong><br> {{ film.descrizione }}</p>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="alert alert-light border" role="alert">
+      Nessun film trovato.
+    </div>
+  {% endif %}
+
+
+  <script>
+    setupAutocomplete({
+      inputId: "id_q",              // <-- metti l'id reale del tuo input
+      boxId: "film-suggestions",
+      minLen: 2
+    });
+
+    function setupAutocomplete({ inputId, boxId, minLen }) {
+      const input = document.getElementById(inputId);
+      const box = document.getElementById(boxId);
+      if (!input || !box) return;
+
+      clearBox(box);
+
+      let timer = null;
+      let lastQuery = "";
+
+      input.setAttribute("autocomplete", "off");
+
+      input.addEventListener("input", () => {
+        const q = input.value.trim();
+        if (q.length < minLen) {
+          clearBox(box);
+          return;
+        }
+
+        clearTimeout(timer);
+        timer = setTimeout(async () => {
+          if (q === lastQuery) return;
+          lastQuery = q;
+
+          try {
+            const url = new URL("/ajax/film-suggestions/", window.location.origin);
+            url.searchParams.set("q", q);
+
+            const res = await fetch(url, { headers: { "Accept": "application/json" }});
+            if (!res.ok) return;
+
+            // atteso: { results: [ {id:..., titolo:...}, ... ] }
+            const data = await res.json();
+
+            const titles = (data.results || []).map(x => x.titolo);
+            renderSuggestions(box, titles, (value) => {
+              input.value = value;
+              clearBox(box);
+              input.form.submit(); // se vuoi cercare subito
+            });
+
+          } catch (err) {
+            clearBox(box);
+          }
+        }, 250);
+      });
+
+      document.addEventListener("click", (e) => {
+        if (!box.contains(e.target) && e.target !== input) clearBox(box);
+      });
+    }
+
+    function renderSuggestions(box, suggestions, onPick) {
+      clearBox(box);
+      if (!suggestions.length) return;
+
+      suggestions.forEach((s) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "list-group-item list-group-item-action bg-dark text-white border-secondary";
+        btn.textContent = s; // textContent = anti-XSS
+        btn.addEventListener("click", () => onPick(s));
+        box.appendChild(btn);
+      });
+
+      box.style.display = "block";
+    }
+
+    function clearBox(box) {
+      box.innerHTML = "";
+      box.style.display = "none";
+    }
+  </script>
+
+
+{% endblock %}
+
+

@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="container py-4">
+    <h1 class="mb-1">Prenotazioni - {{ film.titolo }}</h1>
+    <div class="text-white mb-4">Tutte le proiezioni (future e passate)</div>
+
+    {% if proiezioni %}
+      {% for g in proiezioni %}
+        <div class="card mb-3 bg-dark text-white border-0 shadow-sm">
+          <div class="card-body">
+            <div class="d-flex justify-content-between flex-wrap gap-2">
+              <div>
+                <div class="fw-semibold">
+                  Proiezione: {{ g.proiezione.data_ora|date:"d/m/Y H:i" }} • Sala {{ g.proiezione.sala.nome }}
+                </div>
+                <div class="text-white small">
+                  Totale biglietti: {{ g.biglietti|length }}
+                </div>
+              </div>
+            </div>
+
+            <hr class="my-3">
+
+            <div class="table-responsive">
+              <table class="table table-dark table-sm align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th>Posto</th>
+                    <th>Cliente</th>
+                    <th>Tipo</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for b in g.biglietti %}
+                    <tr>
+                      <td>{{ b.posto.fila }}{{ b.posto.numero_posto }}</td>
+                      <td>
+                        {% if b.utente %}
+                          {{ b.utente.username }}
+                        {% else %}
+                          {{ b.nome_cliente }} {{ b.telefono_cliente }}
+                        {% endif %}
+                      </td>
+                      <td>{% if b.utente %}Online{% else %}Segreteria{% endif %}</td>
+                      <td class="text-end">
+                        <form method="post" action="{% url 'sales:annulla_biglietto_staff' b.id %}" class="d-inline">
+                          {% csrf_token %}
+                          <button type="submit" class="btn btn-danger btn-sm">
+                            Elimina
+                          </button>
+                        </form>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="alert alert-info">Nessuna prenotazione trovata per questo film.</div>
+    {% endif %}
+  </div>
+{% endblock %}
+

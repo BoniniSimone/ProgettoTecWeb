@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-lg py-6 px-3 px-md-0">
+
+  {% if films %}
+    {% for film in films %}
+      <div class="row g-4 align-items-start mb-5 fade-in">
+
+        <!-- LOCANDINA -->
+        <div class="col-12 col-md-5 col-lg-4">
+          <a href="{% url 'cinema:film_detail' film.pk %}" class="d-block">
+            <div class="rounded-1 overflow-hidden" style="aspect-ratio: 2 / 3;">
+              <img src="{{ film.locandina_url }}" alt="Locandina {{ film.titolo }}"
+                  class="w-100 h-100 d-block" style="object-fit: cover;" loading="lazy">
+            </div>
+          </a>
+        </div>
+
+        <!-- DETTAGLI + PROGRAMMAZIONI -->
+        <div class="col-12 col-md-7 col-lg-8 ">
+          <h2 class="h2 fw-bold text-uppercase mb-4">
+            <a href="{% url 'cinema:film_detail' film.pk %}"
+              class="text-danger text-decoration-none">
+              {{ film.titolo }}
+            </a>
+          </h2>
+
+          {% if film.proiezioni_future %}
+            {# Raggruppa le proiezioni per giorno #}
+            {% regroup film.proiezioni_future by data_ora.date as giorni %}
+
+            <div class="vstack gap-3">
+              {% for g in giorni|slice:":7" %}
+                <div class="d-flex align-items-center justify-content-between border-bottom pb-2">
+
+                  <!-- Giorno + Data -->
+                  <div class="me-3">
+                    <div class="fw-bold text-uppercase">
+                      {{ g.grouper|date:"l" }}
+                    </div>
+                    <div class="text-danger">
+                      {{ g.grouper|date:"d/m" }}
+                    </div>
+                  </div>
+
+                  <!-- Orari -->
+                  <div class="d-flex flex-wrap gap-2 justify-content-end">
+                    {% for p in g.list %}
+                      <a
+                        class="btn btn-outline-secondary btn-sm px-4 py-2 fw-semibold rounded-0"
+                        href="{% url 'sales:prenota' p.id %}"
+                        title="Sala {{ p.sala.nome }}"
+                      >
+                        {{ p.data_ora|date:"H:i" }}
+                      </a>
+                    {% endfor %}
+                  </div>
+
+                </div>
+              {% endfor %}
+            </div>
+            
+            
+            {% if staff_mode %}
+              <a class="btn btn-outline-secondary btn-sm mt-3"
+                href="{% url 'sales:prenotazioni_film' film.id %}">
+                Prenotazioni (staff)
+              </a>
+            {% endif %}
+
+
+          {% else %}
+            <div class="text-muted">Nessuna proiezione futura.</div>
+          {% endif %}
+
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="alert alert-light border" role="alert">
+      Nessun film attualmente in programmazione.
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+

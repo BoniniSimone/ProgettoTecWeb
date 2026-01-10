@@ -38,11 +38,110 @@
                 data-bs-target="#mainNav" aria-controls="mainNav" aria-expanded="false"
                 aria-label="Apri navigazione">
           <span class="navbar-toggler-icon"></span>
-        </button>       
+        </button>
+        
+        <div class="collapse navbar-collapse" id="mainNav">
+          <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+
+            <!--UTENTE LOGGATO-->
+            {% if user.is_authenticated %}
+              <li class="nav-item dropdown">
+                <button class="btn btn-danger rounded-pill px-3 py-1"
+                        type="button"
+                        data-bs-toggle="dropdown"
+                        aria-expanded="false">
+                  <i class="bi bi-person-circle me-1"></i> {{ user.username }}
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark">
+                  <li><a class="dropdown-item" href="{% url 'accounts:mie_prenotazioni' %}">Profilo</a></li>
+                  <li><a class="dropdown-item" href="{% url 'login' %}">Cambia account</a></li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li>
+                    <form action="{% url 'logout' %}" method="post" class="d-inline">
+                      {% csrf_token %}
+                      <button type="submit" class="dropdown-item bg-transparent border-0 w-100 text-start">
+                        Logout
+                      </button>
+                    </form>
+                  </li>
+                </ul>
+              </li>
+
+            <!--UTENTE NON LOGGATO-->
+            {% else %}
+              <li class="nav-item dropdown">
+                <button class="btn btn-danger rounded-pill px-3 py-1 bt"
+                        type="button"
+                        data-bs-toggle="dropdown"
+                        aria-expanded="false">
+                  Accedi
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark">
+                  <li><a class="dropdown-item" href="{% url 'accounts:login' %}">Accedi</a></li>
+                  <li><a class="dropdown-item" href="{% url 'accounts:register' %}">Registrati</a></li>
+                </ul>
+              </li>
+            {% endif %}
+            
+          </ul>
+        </div>
+        
       </div>
     </nav>
 
-    
+
+
+    <!-- NAVBAR SECONDARIA -->
+
+    <nav class="navbar-sub">
+      <div class="container">
+        <ul class="nav justify-content-center gap-3 py-1">
+          <li class="nav-item fade-in">
+            <a class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}"
+              href="{% url 'home' %}">Programmazione</a>
+          </li>
+          <li class="nav-item fade-in">
+            <a class="nav-link {% if request.resolver_match.url_name == 'prossimamente' %}active{% endif %}"
+              href="{% url 'cinema:prossimamente' %}">Prossimamente</a>
+          </li>
+          <li class="nav-item fade-in">
+            <a class="nav-link {% if request.resolver_match.url_name == 'rassegna' %}active{% endif %}"
+              href="{% url 'cinema:rassegna' %}">Rassegna</a>
+          </li>
+          <li class="nav-item fade-in">
+            <a class="nav-link {% if request.resolver_match.url_name == 'info' %}active{% endif %}"
+              href="{% url 'info' %}">Info</a>
+          </li>
+          {% if staff_mode%}
+          <li class="nav-item fade-in">
+            <a class="nav-link {% if request.resolver_match.url_name == 'user_list' %}active{% endif %}"
+              href="{% url 'accounts:user_list' %}">Utenti</a>
+          </li>
+          {% endif %}
+        </ul>
+      </div>
+    </nav>
+
+    <!-- NAVBAR TERZA (Segretario, Gestore)-->
+    {% if "gestore_film" in user.groups.all.0.name or user.is_staff %}
+    <br>
+      <nav class="navbar-sub">
+        <div class="container">
+          <ul class="nav justify-content-center gap-3 py-1">
+            <li class="nav-item fade-in">
+              <a class="nav-link {% if request.resolver_match.url_name == 'film_crea' %}active{% endif %}"
+                href="{% url 'cinema:film_crea' %}">Aggiungi film</a>
+            </li>
+            <li class="nav-item fade-in">
+              <a class="nav-link {% if request.resolver_match.url_name == 'film_gestisci' %}active{% endif %}"
+                href="{% url 'cinema:film_gestisci' %}">Gestisci film</a>
+            </li>
+          </ul>
+        </div>
+      </nav>
+    {% endif %}
+
+    <br></br>
 
     <main class="container py-4">
       {% block content %}{% endblock %}
@@ -75,6 +174,8 @@
             });
         });
     </script>
+
+    
 
   </body>
 </html>

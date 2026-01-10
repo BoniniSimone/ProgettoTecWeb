@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="row">
+        <div class="col-md-4">
+        {% if film.locandina_url %}
+            <img src="{{ film.locandina_url }}"
+                alt="Locandina di {{ film.titolo }}"
+                class="img-fluid rounded mb-3">
+        {% else %}
+            <div class="text-muted">Nessuna locandina disponibile</div>
+        {% endif %}
+        </div>
+        <div class="col-md-8 testo-film">
+            <h2 class="h2 fw-bold text-uppercase mb-4 text-danger">
+              Elimina Proiezione per: <br>{{ film.titolo }}
+            </h2>
+            <form method="post">
+                {% csrf_token %}
+                <p>Sei sicuro di voler eliminare questa proiezione?</p>
+                <button type="submit" class="btn btn-danger">Elimina</button>
+                <a href="{% url 'cinema:film_detail' film.id %}" class="btn btn-secondary">Annulla</a>
+            </form>
+        </div>
+    </div>
+{% endblock %}  

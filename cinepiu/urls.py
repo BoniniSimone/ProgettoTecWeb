@@ -16,9 +16,25 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
+from django.urls import include
 from . import views
+from cinema.views import FilmInProgrammazioneListView
+from django.contrib.auth import views as auth_views
+from cinepiu.views import UserCreateView
 
 urlpatterns = [
+    path('', FilmInProgrammazioneListView.as_view(), name='home'),
     path('admin/', admin.site.urls),
-    path('', views.home_view, name='home'),
+    path('info/', views.info_view, name='info'),
+    
+    path('register/', UserCreateView.as_view(), name='register'),
+    path('login/', auth_views.LoginView.as_view(template_name='user_login.html'), name='login'),
+    path('logout/', auth_views.LogoutView.as_view(), name='logout'),
+    
+    path("", include("cinema.urls")),
+    path("sales/", include("sales.urls")),
+    path("accounts/", include("accounts.urls")),
+    path("accounts/", include("django.contrib.auth.urls"))
+
+
 ]

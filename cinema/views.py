@@ -1,0 +1,255 @@
+from django.db.models import Prefetch
+from django.utils import timezone
+from django.views.generic import ListView
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
+from .models import Film, Proiezione
+from django.views.generic import CreateView, DetailView, UpdateView, DeleteView
+from django.urls import reverse_lazy
+from django.contrib import messages
+from .forms import ProiezioneForm, FilmForm
+from django.http import JsonResponse
+from django.views.decorators.http import require_GET
+from django.db.models import Q
+
+
+@require_GET
+def sala_impegni(request, sala_id):
+    now = timezone.now()
+    qs = (
+        Proiezione.objects
+        .filter(sala_id=sala_id, data_ora__gte=now)
+        .select_related("film")
+        .order_by("data_ora")[:50]
+    )
+
+    data = [
+        {
+            "data_ora": timezone.localtime(p.data_ora).strftime("%Y-%m-%d %H:%M"),
+            "film": p.film.titolo,
+        }
+        for p in qs
+    ]
+    return JsonResponse({"impegni": data})
+
+@require_GET
+def film_suggestions(request):
+    q = (request.GET.get("q") or "").strip()
+    if len(q) < 2:
+        return JsonResponse({"results": []})
+
+    qs = (
+        Film.objects
+        .filter(Q(titolo__icontains=q) | Q(regista__icontains=q))
+        .order_by("titolo")
+        .values("id", "titolo")[:5] #limito a 5 risultati
+    )
+
+    return JsonResponse({"results": list(qs)})
+
+
+
+class FilmInProgrammazioneListView(ListView):
+    model = Film
+    template_name = "cinema/film_in_programmazione.html"
+    context_object_name = "films"
+
+    def get_queryset(self):
+        now = timezone.now()
+
+        proiezioni_future_qs = (
+            Proiezione.objects
+            .filter(data_ora__gte=now)
+            .select_related("sala")           # per evitare query extra su Sala
+            .order_by("data_ora")
+        )
+
+        qs = (
+            Film.objects
+            # prendo solo film che hanno almeno una proiezione futura
+            .filter(rassegna=False, proiezione__data_ora__gte=now, in_programmazione__lte=now)
+            .distinct()
+            # prefetch delle proiezioni future in un attributo comodo
+            .prefetch_related(
+                Prefetch(
+                    "proiezione_set",
+                    queryset=proiezioni_future_qs,
+                    to_attr="proiezioni_future"
+                )
+            )
+            .order_by("titolo")
+        )
+        return qs
+    
+class RassegnaFilmListView(ListView):
+    model = Film
+    template_name = "cinema/film_in_programmazione.html"
+    context_object_name = "films"
+
+    def get_queryset(self): #ridefinisco il queryset per filtrare i film, volgio solo i film con rassegna=True
+        now = timezone.now()
+
+        proiezioni_future_qs = (
+            Proiezione.objects
+            .filter(data_ora__gte=now)
+            .select_related("sala")           # per evitare query extra su Sala
+            .order_by("data_ora")
+        )
+
+        qs = (
+            Film.objects
+            # prendo solo film che hanno almeno una proiezione futura e che sono in rassegna
+            .filter(rassegna=True, proiezione__data_ora__gte=now)
+            .distinct()
+            # prefetch delle proiezioni future in un attributo comodo
+            .prefetch_related(
+                Prefetch(
+                    "proiezione_set",
+                    queryset=proiezioni_future_qs,
+                    to_attr="proiezioni_future"
+                )
+            )
+            .order_by("titolo")
+        )
+        return qs
+
+class FilmListView(ListView):
+    model = Film
+    template_name = "cinema/film_list.html"
+    context_object_name = "films"
+
+    def get_queryset(self):
+        qs = super().get_queryset().order_by("titolo")
+        q = (self.request.GET.get("q") or "").strip()
+        if q:
+            qs = qs.filter(
+                Q(titolo__icontains=q) |
+                Q(regista__icontains=q)
+            )
+        return qs
+
+class ProssimamenteFilmListView(ListView):
+    model = Film
+    template_name = "cinema/film_list.html"
+    context_object_name = "films"
+
+    def get_queryset(self):
+        now = timezone.now()
+
+        qs = (
+            Film.objects
+            # prendo solo film con data di uscita futura e non ancora in programmazione
+            .filter(in_programmazione__gt=now, rassegna=False)
+            .order_by("data_uscita")
+        )
+        return qs
+
+
+# ---- CRUD Film ---- #
+
+class FilmCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
+    model = Film
+    form_class = FilmForm
+    template_name = "cinema/film_form.html"
+    success_url = reverse_lazy("home")
+    permission_required = "cinema.add_film"
+
+class FilmDetailView(DetailView):
+    model = Film
+    template_name = "cinema/film_detail.html"
+    context_object_name = "film"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["proiezioni"] = (
+            Proiezione.objects
+            .filter(film=self.object, data_ora__gte=timezone.now())
+            .select_related("sala")
+            .order_by("data_ora")
+        )
+        context["today"] = timezone.now().date()
+        return context
+
+class FilmUpdateView(UpdateView):
+    model = Film
+    form_class = FilmForm
+    template_name = "cinema/film_update.html"
+    context_object_name = "film"
+    success_url = reverse_lazy("home")
+
+class FilmDeleteView(DeleteView):
+    model = Film
+    template_name = "cinema/film_delete.html"
+    context_object_name = "film"
+    success_url = reverse_lazy("home")
+
+
+# ---- CRUD Proiezione ---- #
+
+class ProiezioneCreateView(CreateView):
+    model = Proiezione
+    form_class = ProiezioneForm
+    template_name = "cinema/proiezione_form.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.film = Film.objects.get(pk=kwargs["film_id"])
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["film"] = self.film
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["film"] = self.film
+        context["proiezioni_film"] = (
+            Proiezione.objects
+            .filter(film=self.film, data_ora__gte=timezone.now())
+            .select_related("sala")
+            .order_by("data_ora")
+        )
+        context["title"] = "Aggiungi"
+        return context
+
+    def form_valid(self, form):
+        form.instance.film = self.film
+        messages.success(self.request, "Proiezione creata con successo.")
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy("cinema:film_detail", kwargs={"pk": self.film.pk})
+
+class ProiezioneUpdateView(UpdateView):
+    model = Proiezione
+    form_class = ProiezioneForm
+    template_name = "cinema/proiezione_form.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["film"] = self.object.film
+        context["proiezioni_film"] = (
+            Proiezione.objects
+            .filter(film=self.object.film, data_ora__gte=timezone.now())
+            .select_related("sala")
+            .order_by("data_ora")
+        )
+        context["title"] = "Modifica"
+        return context
+    
+    def get_success_url(self):
+        film_id = self.object.film.pk
+        return reverse_lazy("cinema:film_detail", kwargs={"pk": film_id})
+
+class ProiezioneDeleteView(DeleteView):
+    model = Proiezione
+    template_name = "cinema/proiezione_delete.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["film"] = self.object.film
+        return context
+
+    def get_success_url(self):
+        film_id = self.object.film.pk
+        return reverse_lazy("cinema:film_detail", kwargs={"pk": film_id})
+

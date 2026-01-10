@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+{% if profile_user %}
+  <center>
+    <h1>Prenotazioni di: {{ profile_user.username }}</h1>
+  </center>
+{% else %}
+  <center>
+    <h1>{{ user.username }}</h1>
+    <h4>Benvenuto nella tua area personale</h4>
+  </center>
+{% endif %}
+
+
+
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <h1 class="h3 m-0">{% if profile_user %}Prenotazioni{% else %}Le mie prenotazioni{% endif %}</h1>
+    <div class="text-white">Totale biglietti: {{ items|length }}</div>
+  </div>
+
+  {% if items %}
+    <div class="d-grid gap-3">
+
+      {% for item in items %}
+        {% with b=item.b%}
+        <div class="card mb-0 bg-dark text-white shadow-sm">
+          <div class="row g-0">
+
+            <div class="col-md-4">
+              {% if b.proiezione.film.locandina_url %}
+                <img src="{{ b.proiezione.film.locandina_url }}"
+                     class="img-fluid rounded-start h-100"
+                     alt="Locandina {{ b.proiezione.film.titolo }}"
+                     style="width:100%; object-fit:cover; display:block;">
+              {% else %}
+                <div class="d-flex align-items-center justify-content-center bg-light rounded-start h-100"
+                     style="min-height: 1px;">
+                  <span class="text-white">Nessuna locandina</span>
+                </div>
+              {% endif %}
+            </div>
+
+            <div class="col-md-8">
+              <div class="card-body">
+
+                <div class="d-flex justify-content-between flex-wrap gap-2">
+                  <h3 class="card-title mb-0">{{ b.proiezione.film.titolo }}</h3>
+
+                  {% if b.proiezione.data_ora < now %}
+                    <span class="badge text-bg-secondary align-self-start">Passata</span>
+                  {% else %}
+                    <span class="badge text-bg-success align-self-start">Futura</span>
+                  {% endif %}
+                </div>
+
+                <p class="card-text mt-2 mb-1 testo-film">
+                  <strong>Quando:</strong> {{ b.proiezione.data_ora|date:"d/m/Y H:i" }}
+                  <br>
+                  <strong>Sala:</strong> {{ b.proiezione.sala.nome }}
+                  <br>
+                  <strong>Posto:</strong> {{ b.posto.fila }}{{ b.posto.numero_posto }}
+                </p>
+
+                <p class="card-text mb-2 testo-film">
+                  <strong>Stato:</strong> {{ b.get_stato_display }}
+                  <br>
+                  <strong>Prezzo:</strong> € {{ b.prezzo }}
+                </p>
+
+                <p class="card-text">
+                  <small class="text-body-secondary">
+                    Biglietto #{{ b.id }}
+                  </small>
+                </p>
+
+                <div class="d-flex gap-2">
+                  {% if item.can_cancel %}
+                    {% if as_staff_view %}
+                      <form method="post" action="{% url 'sales:annulla_biglietto_staff' b.id %}" class="d-inline">
+                    {% else %}
+                      <form method="post" action="{% url 'sales:annulla_biglietto' b.id %}" class="d-inline">
+                    {% endif %}
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger btn-sm">Annulla prenotazione</button>
+                      </form>
+                  {% else %}
+                    <button class="btn btn-secondary btn-sm" disabled>Non annullabile</button>
+                  {% endif %}
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+        </div>
+        {% endwith %}
+      {% endfor %}
+
+    </div>
+  {% else %}
+    <div class="alert alert-info">
+      Non hai ancora effettuato prenotazioni.
+    </div>
+  {% endif %}
+
+</div>
+
+{% endblock %}

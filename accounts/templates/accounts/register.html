@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container py-5" style="max-width: 560px;">
+  <div class="card shadow-sm">
+    <div class="card-body p-4">
+      <h1 class="h4 mb-3">Crea account</h1>
+      <p class="text-muted mb-4">Inserisci i tuoi dati per registrarti.</p>
+
+      <form method="post" novalidate>
+        {% csrf_token %}
+
+        {# Se usi django-crispy-forms #}
+        {% if form|crispy %}
+          {{ form|crispy }}
+        {% else %}
+          {# Fallback manuale (se non usi crispy) #}
+          {% for field in form %}
+            <div class="mb-3">
+              <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}
+                <div class="form-text">{{ field.help_text }}</div>
+              {% endif %}
+              {% for error in field.errors %}
+                <div class="invalid-feedback d-block">{{ error }}</div>
+              {% endfor %}
+            </div>
+          {% endfor %}
+          {% for error in form.non_field_errors %}
+            <div class="alert alert-danger">{{ error }}</div>
+          {% endfor %}
+        {% endif %}
+
+        <button type="submit" class="btn btn-warning w-100 mt-2">
+          Registrati
+        </button>
+      </form>
+
+      <hr class="my-4">
+
+      <div class="text-center">
+        <span class="text-muted">Hai già un account?</span>
+        <a href="{% url 'login' %}">Accedi</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

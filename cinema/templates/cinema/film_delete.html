@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{%block title%}Elimina Film{%endblock%}
+
+{%block content%}
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+      <div class="card bg-dark text-light shadow-lg border-secondary">
+        <div class="card-header border-secondary">
+          <h2 class="mb-0">Elimina {{film.titolo}}</h2>
+        </div>
+        <div class="card-body">
+          <form method="post">
+            {% csrf_token %}
+            {% if film.proiezione_set.exists %}
+              <div class="alert alert-warning bg-dark text-white border-secondary">
+                Questo film ha proiezioni associate: elimina prima le proiezioni.
+              </div>
+            {% else %}
+              <p>Sei sicuro di voler eliminare il film "{{film.titolo}}"?</p>
+              <button type="submit" class="btn btn-danger w-100 mt-3">
+                Elimina
+              </button>
+            {% endif %}
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{%endblock%}    

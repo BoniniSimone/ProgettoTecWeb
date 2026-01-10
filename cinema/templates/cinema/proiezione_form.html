@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block content %}
+    {% if form.non_field_errors %}
+    <div class="alert alert-danger">
+        {{ form.non_field_errors }}
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <div class="col-md-4">
+        {% if film.locandina_url %}
+            <a href="{% url 'cinema:film_detail' film.pk %}" class="d-block">
+                <img src="{{ film.locandina_url }}"
+                    alt="Locandina di {{ film.titolo }}"
+                    class="img-fluid rounded mb-3">
+            </a>
+        {% else %}
+            <div class="text-muted">Nessuna locandina disponibile</div>
+        {% endif %}
+        </div> 
+        <div class="col-md-8 testo-film">
+            <h2 class="h2 fw-bold text-uppercase mb-4 text-danger">
+              {{ title }} proiezione per: <br>{{ film.titolo }}
+            </h2>
+            <form method="post">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button type="submit" class="btn btn-primary">Salva modifiche</button>
+            </form>
+        </div>
+    </div>
+
+
+    
+    {% if proiezioni_film %}
+        <h2 class="mt-5">Proiezioni esistenti per questo film</h2>
+        <ul class="list-group">
+            {% for proiezione in proiezioni_film %}
+                <li class="list-group-item d-flex justify-content-between align-items-center bg-dark text-white border-secondary">
+                    <div>
+                        <strong>Data e ora:</strong> {{ proiezione.data_ora|date:"d/m/Y H:i" }}<br>
+                        <strong>Sala:</strong> {{ proiezione.sala.nome }}<br>
+                    </div>
+                    <div>
+                        <a href="{% url 'cinema:proiezione_modifica' proiezione.id %}" class="btn btn-danger">Modifica</a>
+                        <a href="{% url 'cinema:proiezione_elimina' proiezione.id %}" class="btn btn-danger">Elimina</a>
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="text-muted mt-4">Nessuna proiezione esistente per questo film.</p>
+    {% endif %}
+
+
+    <div class="mt-4">
+        <h5 class="text-uppercase">Sala occupata</h5>
+        <ul id="impegni-sala" class="list-group">
+            <li class="list-group-item bg-dark text-light border-secondary">Seleziona una sala per vedere gli impegni.</li>
+        </ul>
+    </div>
+
+<script>
+(function() {
+  const salaSelect = document.getElementById("{{ form.sala.id_for_label }}");
+  const box = document.getElementById("impegni-sala");
+
+  async function loadImpegni() {
+    const salaId = salaSelect.value;
+    if (!salaId) return;
+
+    const url = "{% url 'cinema:sala_impegni' 0 %}".replace("/0/", "/" + salaId + "/");
+    const res = await fetch(url, {headers: {"X-Requested-With": "XMLHttpRequest"}});
+    const data = await res.json();
+
+    box.innerHTML = "";
+    if (!data.impegni.length) {
+      box.innerHTML = '<li class="list-group-item text-muted">Nessun impegno futuro per questa sala.</li>';
+      return;
+    }
+    data.impegni.forEach(item => {
+      const li = document.createElement("li");
+      li.className = "list-group-item bg-dark text-light border-secondary d-flex justify-content-between";
+      li.innerHTML = `<span>${item.data_ora}</span><span class="badge bg-secondary">${item.film}</span>`;
+      box.appendChild(li);
+    });
+  }
+
+  salaSelect.addEventListener("change", loadImpegni);
+})();
+</script>
+
+{% endblock %}

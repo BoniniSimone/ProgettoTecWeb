@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="row">
+        <div class="col-md-4">
+        {% if film.locandina_url %}
+            <img src="{{ film.locandina_url }}"
+                alt="Locandina di {{ film.titolo }}"
+                class="img-fluid rounded mb-3">
+        {% else %}
+            <div class="text-muted">Nessuna locandina disponibile</div>
+        {% endif %}
+        </div> 
+        <div class="col-md-8 testo-film">
+            <h2 class="h2 fw-bold text-uppercase mb-4 text-danger">
+              Modifica Film: {{ film.titolo }}
+            </h2>
+            <form method="post">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button type="submit" class="btn btn-primary">Salva modifiche</button>
+            </form>
+        </div>
+    </div>
+{% endblock %}  
