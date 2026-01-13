@@ -52,15 +52,14 @@
             <th>Email</th>
             <th>Telefono</th>
             <th>Socio</th>
-            <th class="text-end"></th>
+            <th class="text-end" style="width: 250px;">Azioni</th>
           </tr>
         </thead>
         <tbody>
           {% for u in client_users %}
             <tr>
               <td class="fw-semibold">
-                <a class="link-light text-decoration-none"
-                   href="{% url 'accounts:user_prenotazioni' u.id %}">
+                <a class="link-light text-decoration-none" href="{% url 'accounts:user_prenotazioni' u.id %}">
                   {{ u.username }}
                 </a>
               </td>
@@ -74,14 +73,24 @@
                 {% endif %}
               </td>
               <td class="text-end">
-                <form method="post" action="{% url 'accounts:user_toggle_socio' u.id %}" class="d-inline">
-                  {% csrf_token %}
-                  {% if u.socio %}
-                    <button type="submit" class="btn btn-outline-warning btn-sm">Revoca socio</button>
-                  {% else %}
-                    <button type="submit" class="btn btn-warning btn-sm">Rendi socio</button>
-                  {% endif %}
-                </form>
+                <div class="d-flex justify-content-end gap-2">
+                  <form method="post" action="{% url 'accounts:user_toggle_socio' u.id %}" class="m-0">
+                    {% csrf_token %}
+                    {% if u.socio %}
+                      <button type="submit" class="btn btn-danger btn-sm">Revoca socio</button>
+                    {% else %}
+                      <button type="submit" class="btn btn-danger btn-sm">Rendi socio</button>
+                    {% endif %}
+                  </form>
+
+                  <form method="post" action="{% url 'accounts:user_delete' u.id %}" class="m-0">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-danger btn-sm"
+                            onclick="return confirm('Eliminare definitivamente l\'utente {{ u.username }}?');">
+                      Elimina
+                    </button>
+                  </form>
+                </div>
               </td>
             </tr>
           {% endfor %}

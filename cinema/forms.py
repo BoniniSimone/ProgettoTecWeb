@@ -1,6 +1,6 @@
 from django import forms
 from django.utils import timezone
-from .models import Proiezione, Film
+from .models import Proiezione, Film, Recensione
 from django.core.exceptions import ValidationError
 
 class ProiezioneForm(forms.ModelForm):
@@ -82,3 +82,21 @@ class FilmForm(forms.ModelForm):
             "regista": forms.TextInput(attrs={"class": "form-control"}),
             "cast_principale": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
         }
+
+
+class RecensioneForm(forms.ModelForm):
+    class Meta:
+        model = Recensione
+        fields = ["valutazione", "contenuto"]
+        widgets = {
+            "valutazione": forms.NumberInput(attrs={"class": "form-control", "min": 1, "max": 5}),
+            "contenuto": forms.Textarea(attrs={"class": "form-control", "rows": 4, "placeholder": "Scrivi la tua recensione..."}),
+        }
+
+    def clean_valutazione(self):
+        v = self.cleaned_data.get("valutazione")
+        if v is None:
+            return v
+        if not (1 <= int(v) <= 5):
+            raise forms.ValidationError("La valutazione deve essere compresa tra 1 e 5.")
+        return v

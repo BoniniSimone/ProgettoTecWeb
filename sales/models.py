@@ -5,7 +5,6 @@ class Biglietto(models.Model):
     class Stato(models.TextChoices):
         PRENOTATO = "PRE", "Prenotato"
         PAGATO = "PAG", "Pagato"
-        ANNULLATO = "ANN", "Annullato"
 
     proiezione = models.ForeignKey("cinema.Proiezione", on_delete=models.CASCADE, related_name="biglietti")
     posto = models.ForeignKey("cinema.Posto", on_delete=models.PROTECT)
@@ -25,4 +24,10 @@ class Biglietto(models.Model):
         constraints = [
             models.UniqueConstraint(fields=["proiezione", "posto"], name="uniq_posto_per_proiezione"),
         ]
+
+    def __str__(self):
+        film = getattr(self.proiezione, "film", None)
+        titolo = getattr(film, "titolo", "Film")
+        return f"{titolo} - {self.proiezione.data_ora:%d/%m %H:%M} - Posto {self.posto} - {self.get_stato_display()}"
+
 

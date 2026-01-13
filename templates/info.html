@@ -8,16 +8,46 @@
         <div class="wrapper fade-in">
             <section class="info-card">
                 <h1>Info</h1>
-                <p>Benvenuto nella nostra pagina info. Qui troverai tutti i dettagli sui nostri servizi e la nostra missione per offrire soluzioni innovative.</p>
+                <p>Benvenuto nella nostra pagina info.<br> Qui troverai tutti i dettagli sui nostri servizi.</p>
             </section>
             <img src="{% static 'imgs/cinepiu-correggio.jpg' %}" alt="Info Image" class="info-image">
         </div>
         <br></br>
+
+        <hr>
+
         <div class="fade-in">
             <h2>Dove siamo:</h2>
             <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d5665.071548915698!2d10.764634375495213!3d44.76988147949729!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x477ff4f0ebd5e2f1%3A0xfac757a9d7668d84!2sCinepi%C3%B9%20Correggio!5e0!3m2!1sit!2sit!4v1766857166702!5m2!1sit!2sit" width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
         </div>
+            
         
+        <hr>
+
+        <div class="mt-4">
+            <h3>Newsletter</h3>
+            <p>Iscriviti alla nostra newsletter per rimanere sempre aggiornato</p>
+            <form method="post" action="{% url 'info' %}" class="d-flex gap-2 flex-wrap">
+                {% csrf_token %}
+                <input
+                type="email"
+                name="email"
+                class="form-control"
+                placeholder="Inserisci la tua email"
+                required
+                />
+                <button type="submit" class="btn btn-danger">Iscrivimi</button>
+            </form>
+
+            {% if newsletter_esito == "ok" %}
+                <div class="alert alert-success mt-2 mb-0">Email salvata correttamente.</div>
+            {% elif newsletter_esito == "exists" %}
+                <div class="alert alert-warning mt-2 mb-0">Questa email è già iscritta.</div>
+            {% elif newsletter_esito == "invalid" %}
+                <div class="alert alert-danger mt-2 mb-0">Inserisci un indirizzo email valido.</div>
+            {% endif %}
+        </div>
+
     </center>
 
 {%endblock%}

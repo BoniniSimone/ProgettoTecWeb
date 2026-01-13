@@ -8,4 +8,5 @@ urlpatterns = [
     path("prenotazioni/<int:biglietto_id>/annulla/", views.annulla_biglietto, name="annulla_biglietto"),
     path("film/<int:film_id>/prenotazioni/", views.PrenotazioniFilmView.as_view(), name="prenotazioni_film"),
     path("biglietti/<int:biglietto_id>/annulla-staff/", views.BigliettoStaffDeleteView.as_view(), name="annulla_biglietto_staff"),
+    path("biglietti/<int:pk>/paga/", views.BigliettoSegnaPagatoView.as_view(), name="biglietto_paga"),
 ]

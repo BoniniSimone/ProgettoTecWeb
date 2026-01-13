@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 
 {% block content %}
+
+
+    <!-- DETTAGLI FILM -->
+
     <div class="row">
         <div class="col-md-4">
         {% if film.locandina_url %}
@@ -35,6 +39,9 @@
         </div>
     </div>
 
+
+    <!-- PROIEZIONI -->
+
     {% if film.in_programmazione <= today %}
         <h2 class="mt-5">Proiezioni disponibili</h2>
         {% if proiezioni %}
@@ -56,6 +63,10 @@
         {% endif %}
     {% endif %}
 
+
+
+    <!-- TRAILER -->
+
     <h2 class="mt-5">Trailer</h2>
     <center>
         <div class="ratio ratio-16x9">
@@ -67,4 +78,75 @@
             </iframe>
         </div>
     </center>
+
+    <hr class="my-5">
+
+
+
+    <!-- RECENSIONI -->
+
+    <h3 class="mt-5">Aggiungi una recensione</h3>
+    {% if user.is_authenticated %}
+    <form method="post" class="mt-3">
+        {% csrf_token %}
+        <div class="row g-3">
+        <div class="col-md-2">
+            <label class="form-label">Valutazione (1-5)</label>
+            {{ recensione_form.valutazione }}
+            {% if recensione_form.valutazione.errors %}
+            <div class="text-danger small">{{ recensione_form.valutazione.errors|striptags }}</div>
+            {% endif %}
+        </div>
+        <div class="col-md-10">
+            <label class="form-label">Recensione</label>
+            {{ recensione_form.contenuto }}
+            {% if recensione_form.contenuto.errors %}
+            <div class="text-danger small">{{ recensione_form.contenuto.errors|striptags }}</div>
+            {% endif %}
+        </div>
+        </div>
+
+        {% if recensione_form.non_field_errors %}
+        <div class="text-danger small mt-2">{{ recensione_form.non_field_errors|striptags }}</div>
+        {% endif %}
+
+        <button type="submit" class="btn btn-primary mt-3">Pubblica</button>
+    </form>
+    {% else %}
+    <p class="text-white mt-3">
+        Per scrivere una recensione devi effettuare l'accesso.
+        <a href="{% url 'login' %}?next={{ request.path }}">Login</a>
+    </p>
+    {% endif %}
+
+    <h2 id="recensioni" class="mt-5">Recensioni</h2>
+
+    {% if recensioni %}
+    <div class="mt-3">
+        {% for r in recensioni %}
+        <div class="card bg-dark text-white border-secondary mb-3">
+            <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                <div class="fw-bold">{{ r.autore }}</div>
+                <div class="text-white small">
+                    Valutazione: {{ r.valutazione }}/5 · {{ r.created_at|date:"d/m/Y H:i" }}
+                </div>
+                </div>
+                {% if staff_mode %}
+                <form method="post" action="{% url 'cinema:recensione_elimina' r.id %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-outline-danger">Elimina</button>
+                </form>
+                {% endif %}
+            </div>
+            <p class="mt-3 mb-0">{{ r.contenuto }}</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-white mt-3">Ancora nessuna recensione.</p>
+    {% endif %}
+
 {% endblock %}

@@ -2,15 +2,17 @@ from django.db.models import Prefetch
 from django.utils import timezone
 from django.views.generic import ListView
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
-from .models import Film, Proiezione
-from django.views.generic import CreateView, DetailView, UpdateView, DeleteView
+from .models import Film, Proiezione, Recensione
+from django.views.generic import CreateView, DetailView, UpdateView, DeleteView, View
 from django.urls import reverse_lazy
 from django.contrib import messages
-from .forms import ProiezioneForm, FilmForm
+from .forms import ProiezioneForm, FilmForm, RecensioneForm
 from django.http import JsonResponse
 from django.views.decorators.http import require_GET
 from django.db.models import Q
-
+from accounts.permissions import is_operational_staff
+from django.shortcuts import get_object_or_404, redirect
+from django.urls import reverse
 
 @require_GET
 def sala_impegni(request, sala_id):
@@ -144,8 +146,6 @@ class ProssimamenteFilmListView(ListView):
         return qs
 
 
-# ---- CRUD Film ---- #
-
 class FilmCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
     model = Film
     form_class = FilmForm
@@ -167,7 +167,45 @@ class FilmDetailView(DetailView):
             .order_by("data_ora")
         )
         context["today"] = timezone.now().date()
+        context["recensioni"] = (
+            Recensione.objects
+            .filter(film=self.object)
+            .select_related("autore")
+            .order_by("-create_at", "-id")
+        )
+        context["recensione_form"] = kwargs.get("recensione_form") or RecensioneForm()
         return context
+    
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+
+        if not request.user.is_authenticated:
+            return redirect(f"/accounts/login/?next={request.path}")
+
+        form = RecensioneForm(request.POST)
+        if form.is_valid():
+            rec = form.save(commit=False)
+            rec.film = self.object
+            rec.autore = request.user
+            rec.save()
+            messages.success(request, "Recensione inserita con successo.")
+            return redirect(f"{request.path}#recensioni")
+
+        context = self.get_context_data(recensione_form=form)
+        return self.render_to_response(context)
+
+
+class RecensioneDeleteView(LoginRequiredMixin, View):
+    def test_func(self):
+        return is_operational_staff(self.request.user)
+
+    def post(self, request, pk):
+        recensione = get_object_or_404(Recensione, pk=pk)
+        film_id = recensione.film_id
+        recensione.delete()
+        messages.success(request, "Recensione eliminata.")
+        return redirect(reverse("cinema:film_detail", kwargs={"pk": film_id}) + "#recensioni")
+
 
 class FilmUpdateView(UpdateView):
     model = Film
@@ -182,8 +220,6 @@ class FilmDeleteView(DeleteView):
     context_object_name = "film"
     success_url = reverse_lazy("home")
 
-
-# ---- CRUD Proiezione ---- #
 
 class ProiezioneCreateView(CreateView):
     model = Proiezione

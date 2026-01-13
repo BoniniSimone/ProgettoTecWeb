@@ -20,12 +20,12 @@ from django.urls import include
 from . import views
 from cinema.views import FilmInProgrammazioneListView
 from django.contrib.auth import views as auth_views
-from cinepiu.views import UserCreateView
+from cinepiu.views import UserCreateView, InfoView
 
 urlpatterns = [
     path('', FilmInProgrammazioneListView.as_view(), name='home'),
     path('admin/', admin.site.urls),
-    path('info/', views.info_view, name='info'),
+    path('info/', InfoView.as_view(), name='info'),
     
     path('register/', UserCreateView.as_view(), name='register'),
     path('login/', auth_views.LoginView.as_view(template_name='user_login.html'), name='login'),

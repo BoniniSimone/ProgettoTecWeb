@@ -7,7 +7,7 @@ from django.contrib.auth.decorators import login_required
 from cinema.models import Posto, Proiezione
 from .models import Biglietto
 from cinema.models import Film
-from django.views.generic import DetailView, DeleteView
+from django.views.generic import DetailView, DeleteView, View
 from django.urls import reverse
 from braces.views import GroupRequiredMixin
 from accounts.permissions import is_operational_staff
@@ -43,6 +43,14 @@ class PrenotazioniFilmView(GroupRequiredMixin, DetailView):
         ctx["now"] = timezone.now()
         return ctx
 
+class BigliettoSegnaPagatoView(GroupRequiredMixin, View):
+    group_required = ["segretario", "gestore_film"]
+    
+    def post(self, request, pk):
+        biglietto = get_object_or_404(Biglietto, pk=pk)
+        biglietto.stato = Biglietto.Stato.PAGATO
+        biglietto.save(update_fields=["stato"])
+        return redirect(request.META.get("HTTP_REFERER", "info"))
 
 class BigliettoStaffDeleteView(GroupRequiredMixin, DeleteView):
     model = Biglietto

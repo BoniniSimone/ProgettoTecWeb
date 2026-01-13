@@ -9,6 +9,8 @@ urlpatterns = [
     path("rassegna/", views.RassegnaFilmListView.as_view(), name="rassegna"),
     path("film/gestisci/", views.FilmListView.as_view(), name="film_gestisci"),
     path("prossimamente/", views.ProssimamenteFilmListView.as_view(), name="prossimamente"),
+    path("recensioni/<int:pk>/elimina/", views.RecensioneDeleteView.as_view(), name="recensione_elimina"),
+
 
     path("film/crea/", views.FilmCreateView.as_view(), name="film_crea"),
     path("film/<int:pk>/", views.FilmDetailView.as_view(), name="film_detail"),

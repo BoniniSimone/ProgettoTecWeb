@@ -3,9 +3,11 @@ from django.contrib.auth.models import Group
 
 class CreaUtenteCliente(UserCreationForm):
     def save(self, commit=True):
-        user = super().save(commit)
-        g = Group.objects.get(name='cliente')
-        g.user_set.add(user)
+        user = super().save(commit=False)
+        user.is_staff = False
+        user.is_superuser = False
+        if commit:
+            user.save()
         return user
     
 class CreaUtenteGestoreFilm(UserCreationForm):

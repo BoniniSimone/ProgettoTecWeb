@@ -15,20 +15,21 @@ class Film(models.Model):
     cast_principale = models.TextField()
     locandina_url = models.URLField()
     trailer_url = models.URLField(blank=True, null=True)
-    rassegna = models.BooleanField(default=False)
-    uscita_locale = models.DateField(blank=True, null=True)
-    in_programmazione = models.DateField(blank=True, null=True)
+    rassegna = models.BooleanField(default=False) #Booleano che indica se un film appartiene alla rassegna
+    uscita_locale = models.DateField(blank=True, null=True) #Indica qunado il film uscirà nel nostro cinema (non ci sono controlli, quindi un film potrebbe uscire in una data precedente al giorno della prima proiezione)
+    in_programmazione = models.DateField(blank=True, null=True) #Indica quando un film passa nella sezione "Programmazione" del sito e diventa in prenotabile
 
+    #Trasforma un URL normale in un URL embed
     @property
-    def trailer_embed_url(self):
+    def trailer_embed_url(self): 
         if not self.trailer_url:
             return ""
 
         url = self.trailer_url.strip()
-        p = urlparse(url) #spezzetta l'URL in componenti
+        p = urlparse(url) # divide l'URL in componenti (schema, host, path...)
 
         host = (p.netloc or "").lower()
-        path = (p.path or "").strip("/")
+        path = (p.path or "").strip("/") # strip rimuove, in questo caso, tutti i caratteri "/" da inizio e da infondo alla stringa
 
         # già in formato embed
         if "youtube.com" in host and path.startswith("embed/"):
@@ -36,27 +37,27 @@ class Film(models.Model):
 
         # youtu.be/<id>
         if "youtu.be" in host and path:
-            video_id = path.split("/")[0]
+            video_id = path.split("/")[0] # prende solo l'elemento con indice 0 di quelli che ha splittato
             return f"https://www.youtube.com/embed/{video_id}"
 
         # youtube.com/watch?v=<id>
         if "youtube.com" in host:
-            qs = parse_qs(p.query)
+            qs = parse_qs(p.query) # parse_sq prende la parte di query e la trasforma in un dizionario
             video_id = (qs.get("v") or [""])[0]
             if video_id:
                 return f"https://www.youtube.com/embed/{video_id}"
 
-        # fallback: non riconosciuto
+        #non riconosciuto
         return url
 
     def clean(self):
-        errors = {}
+        errors = {} #dizionario che ci servirà per indicare di che errore si tratta (se si presenta un errore)
 
-        # vincolo: uscita_locale >= data_uscita
+        # vincolo: uscita_locale >= data_uscita (l'uscita locale non può avvenire prima di quando il film esce in un paese)
         if self.uscita_locale and self.data_uscita and self.uscita_locale < self.data_uscita:
             errors["uscita_locale"] = "La data di uscita locale non può essere precedente alla data di uscita."
 
-        # vincolo: in_programmazione <= uscita_locale
+        # vincolo: in_programmazione <= uscita_locale (se si vuole mettere un film in programmazione prima che esca si può fare, ma non dopo il giorno che abbiamo indicato di uscita)
         if self.in_programmazione and self.uscita_locale and self.in_programmazione > self.uscita_locale:
             errors["in_programmazione"] = "La data 'in programmazione' non può essere successiva all'uscita locale."
 
@@ -64,11 +65,9 @@ class Film(models.Model):
             raise ValidationError(errors)
         
     def save(self, *args, **kwargs):
-        # default dinamico: uscita_locale = data_uscita se non impostata
         if self.uscita_locale is None:
             self.uscita_locale = self.data_uscita
 
-        # default dinamico: in_programmazione = uscita_locale se non impostata
         if self.in_programmazione is None:
             self.in_programmazione = self.uscita_locale
         
@@ -78,9 +77,10 @@ class Film(models.Model):
     class Meta:
         verbose_name_plural = "Film"
     
-
     def __str__(self):
         return self.titolo
+
+
 
 
 class Proiezione(models.Model):
@@ -104,7 +104,7 @@ class Proiezione(models.Model):
         # 2) vincolo: no sovrapposizioni in sala
         if self.film_id and self.sala_id and self.data_ora:
             inizio = self.data_ora
-            fine = inizio + timedelta(
+            fine = inizio + timedelta( 
                 minutes=int(self.film.durata_minuti) + int(self.BUFFER_MINUTI)
             )
 
@@ -130,34 +130,38 @@ class Proiezione(models.Model):
                         )
 
         if errors:
-            raise ValidationError(errors)
-    
-
+            raise ValidationError(errors)    
 
     class Meta:
         verbose_name_plural = "Proiezioni"
         constraints = [
             models.UniqueConstraint(
-                fields=["sala", "data_ora"],
+                fields=["sala", "data_ora"], 
                 name="uniq_proiezione_sala_orario"
             )
         ]
 
     def __str__(self):
         return f"{self.film.titolo} - {self.data_ora} in {self.sala}"
-    
+
+
+
 
 class Recensione(models.Model):
     film = models.ForeignKey(Film, on_delete=models.CASCADE)
     autore = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     contenuto = models.TextField()
     valutazione = models.IntegerField()
+    create_at = models.DateTimeField(auto_now_add=True) #con auto_now_add si salva in automatico la data di creazione della recensione
 
     class Meta:
         verbose_name_plural = "Recensioni"
+        ordering = ["-create_at", "-id"]
 
     def __str__(self):
         return f"Recensione di {self.autore} per {self.film.titolo}"
+
+
 
 
 class Sala(models.Model):
@@ -168,6 +172,8 @@ class Sala(models.Model):
 
     def __str__(self):
         return self.nome
+    
+
 
 
 class Posto(models.Model):

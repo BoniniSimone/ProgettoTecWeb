@@ -36,6 +36,7 @@
                   {% for b in g.biglietti %}
                     <tr>
                       <td>{{ b.posto.fila }}{{ b.posto.numero_posto }}</td>
+
                       <td>
                         {% if b.utente %}
                           {{ b.utente.username }}
@@ -43,14 +44,25 @@
                           {{ b.nome_cliente }} {{ b.telefono_cliente }}
                         {% endif %}
                       </td>
+
                       <td>{% if b.utente %}Online{% else %}Segreteria{% endif %}</td>
+
                       <td class="text-end">
-                        <form method="post" action="{% url 'sales:annulla_biglietto_staff' b.id %}" class="d-inline">
-                          {% csrf_token %}
-                          <button type="submit" class="btn btn-danger btn-sm">
-                            Elimina
-                          </button>
-                        </form>
+                        <div class="d-inline-flex gap-2 align-items-center">
+                          <form method="post" action="{% url 'sales:annulla_biglietto_staff' b.id %}" class="m-0">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger btn-sm">Elimina</button>
+                          </form>
+
+                          {% if user.is_staff and b.stato != "PAG" %}
+                            <form method="post" action="{% url 'sales:biglietto_paga' b.pk %}" class="m-0">
+                              {% csrf_token %}
+                              <button type="submit" class="btn btn-success btn-sm">Segna come pagato</button>
+                            </form>
+                          {% elif b.stato == "PAG" %}
+                            <span class="badge bg-success">Pagato</span>
+                          {% endif %}
+                        </div>
                       </td>
                     </tr>
                   {% endfor %}

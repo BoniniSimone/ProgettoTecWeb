@@ -43,8 +43,8 @@ def prenotazioni_utente(request, user_id):
     return render(request, "accounts/mie_prenotazioni.html", {
         "items": items,
         "now": now,
-        "profile_user": target,   # nuovo
-        "as_staff_view": True,    # nuovo
+        "profile_user": target,   
+        "as_staff_view": True,    
     })
 
 
@@ -66,6 +66,7 @@ class ToggleSocioView(View):
 
         messages.success(request, "Stato socio aggiornato.")
         return redirect("accounts:user_list")
+
 
 class UserListView(GroupRequiredMixin, ListView):
     model = User
@@ -102,8 +103,12 @@ class UserDeleteView(View):
 
         target = get_object_or_404(User, id=user_id)
 
-        if Biglietto.objects.filter(utente=target).exists():
-            messages.error(request, "Non puoi eliminare un utente che ha prenotazioni.")
+        today = timezone.localdate()
+
+        has_active_bookings = Biglietto.objects.filter(utente=target, proiezione__data_ora__date__gte=today,).exclude(stato=Biglietto.Stato.ANNULLATO).exists()
+
+        if has_active_bookings:
+            messages.error(request, "Non puoi eliminare un utente con prenotazioni attive.")
             return redirect("accounts:user_list")
 
         # Evita cancellazioni pericolose

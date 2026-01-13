@@ -77,7 +77,6 @@ class Command(BaseCommand):
 
         gestore_group, _ = Group.objects.get_or_create(name="gestore_film")
         segretario_group, _ = Group.objects.get_or_create(name="segretario")
-        cliente_group, _ = Group.objects.get_or_create(name="cliente")
 
         cinema_perms = Permission.objects.filter(
             content_type__app_label="cinema",
@@ -115,8 +114,7 @@ class Command(BaseCommand):
 
         cliente_username = "Francesco"
         if not User.objects.filter(username=cliente_username).exists():
-            u = User.objects.create_user(username=cliente_username, email="francesco@example.com", password="francesco1234")
-            u.groups.add(cliente_group)
+            u = User.objects.create_user(username=cliente_username, email="francesco@example.com", password="francesco1234", is_staff=False,)
             if hasattr(u, "socio"):
                 u.socio = True
                 u.save(update_fields=["socio"])
@@ -276,6 +274,7 @@ class Command(BaseCommand):
             # prendo 3 posti random della sala della proiezione
             posti = list(Posto.objects.filter(sala=p.sala))
             random.shuffle(posti)
+
 
             for posto in posti[:3]:
                 # Una prenotazione online (francesco)

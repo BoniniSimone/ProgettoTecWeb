@@ -3,6 +3,21 @@ from django.contrib.auth.forms import UserCreationForm
 from .models import User
 from django.contrib.auth.forms import AuthenticationForm
 
+class NewsletterSubscribeForm(forms.Form):
+    email = forms.EmailField(
+        max_length=254,
+        widget=forms.EmailInput(attrs={
+            "class": "form-control",
+            "placeholder": "Inserisci la tua email",
+            "required": True,
+        }),
+    )
+
+    def clean_email(self):
+        # normalizzazione: riduce edge-case e rende il confronto coerente
+        return self.cleaned_data["email"].strip().lower()
+
+
 class RegisterForm(UserCreationForm):
     email = forms.EmailField(required=True)
     phone_number = forms.CharField(required=False)
