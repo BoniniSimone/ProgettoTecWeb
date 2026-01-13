@@ -1,5 +1,3 @@
-# accounts/permissions.py
-
 GROUP_SEGRETARIO = "segretario"
 GROUP_GESTORE = "gestore_film"
 
@@ -45,18 +43,12 @@ def can_manage_users(user):
 
 
 def can_delete_user(actor, target):
-    """
-    Regole:
-    - segretario: può eliminare solo clienti
-    - gestore_film: può eliminare clienti e segretari
-    - admin (superuser): può eliminare clienti, segretari, gestori
-    - nessuno può eliminare superuser o sé stesso
-    """
+    
     if not actor.is_authenticated:
         return False
-    if target == actor:
+    if target == actor: # Non si può autoeliminarsi
         return False
-    if target.is_superuser:
+    if target.is_superuser: # Non si può eliminare l'admin
         return False
 
     a = role(actor)

@@ -2,28 +2,25 @@ from datetime import timedelta
 from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login
-from .forms import RegisterForm
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from sales.models import Biglietto
+from django.views.generic import ListView, View
+from .forms import RegisterForm
 from .models import User
-from django.views.generic import ListView
-from django.db.models import Q
-from .permissions import can_manage_users, can_delete_user, STAFF_GROUPS
-from django.views import View
-from .permissions import is_cliente 
+from .permissions import can_manage_users, can_delete_user, STAFF_GROUPS, is_cliente
 from braces.views import GroupRequiredMixin
 
 @login_required
 def prenotazioni_utente(request, user_id):
     if not can_manage_users(request.user):
         messages.error(request, "Non autorizzato.")
-        return redirect("accounts:user_list")
+        return redirect("cinema:programmazione")
 
     target = get_object_or_404(User, id=user_id)
 
     if not is_cliente(target):
-        messages.error(request, "Puoi vedere le prenotazioni solo degli utenti comuni.")
+        messages.error(request, "Puoi vedere le prenotazioni solo dei clienti.")
         return redirect("accounts:user_list")
 
     now = timezone.now()
@@ -36,10 +33,10 @@ def prenotazioni_utente(request, user_id):
 
     items = []
     for b in qs:
-        can_cancel = now < (b.proiezione.data_ora - timedelta(hours=1))
+        can_cancel = now < (b.proiezione.data_ora - timedelta(hours=1)) # Non è possibile cancellare una prenotazione meno di un'ora della proiezione
         items.append({"b": b, "can_cancel": can_cancel})
 
-    # riuso lo stesso template, ma passando un utente "profilo"
+    # riuso lo stesso template "mie_prenotazioni"
     return render(request, "accounts/mie_prenotazioni.html", {
         "items": items,
         "now": now,
@@ -48,12 +45,11 @@ def prenotazioni_utente(request, user_id):
     })
 
 
-class ToggleSocioView(View):
-    def post(self, request, user_id):
-        if not request.user.is_authenticated or not can_manage_users(request.user):
-            messages.error(request, "Non autorizzato.")
-            return redirect("accounts:user_list")
+class ToggleSocioView(GroupRequiredMixin, View):
+    group_required = ["segretario", "gestore_film"]
+    superuser_allowed = True
 
+    def post(self, request, user_id):
         target = get_object_or_404(User, id=user_id)
 
         # Solo utenti comuni
@@ -77,14 +73,12 @@ class UserListView(GroupRequiredMixin, ListView):
     raise_exception = True
 
     def get_queryset(self):
-        return User.objects.all().order_by("username")
+        return User.objects.filter(is_superuser=False).order_by("username") # non visualizziamo l'admin
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
 
-        staff_users = User.objects.filter(
-            Q(groups__name__in=STAFF_GROUPS)
-        ).distinct()
+        staff_users = User.objects.filter(groups__name__in=STAFF_GROUPS).distinct()
 
         client_users = User.objects.exclude(
             id__in=staff_users.values_list("id", flat=True)
@@ -95,23 +89,21 @@ class UserListView(GroupRequiredMixin, ListView):
         return ctx
 
 
-class UserDeleteView(View):
-    def post(self, request, user_id):
-        if not request.user.is_authenticated or not can_manage_users(request.user):
-            messages.error(request, "Non autorizzato.")
-            return redirect("accounts:user_list")
+class UserDeleteView(GroupRequiredMixin, View):
+    group_required = ["segretario", "gestore_film"]
+    superuser_allowed = True
 
+    def post(self, request, user_id):
         target = get_object_or_404(User, id=user_id)
 
         today = timezone.localdate()
 
-        has_active_bookings = Biglietto.objects.filter(utente=target, proiezione__data_ora__date__gte=today,).exclude(stato=Biglietto.Stato.ANNULLATO).exists()
+        has_active_bookings = Biglietto.objects.filter(utente=target, proiezione__data_ora__date__gte=today,).exists()
 
         if has_active_bookings:
             messages.error(request, "Non puoi eliminare un utente con prenotazioni attive.")
             return redirect("accounts:user_list")
 
-        # Evita cancellazioni pericolose
         if target.is_superuser:
             messages.error(request, "Non puoi eliminare un amministratore.")
             return redirect("accounts:user_list")
@@ -136,7 +128,7 @@ def register(request):
             user = form.save()
             login(request, user)
             messages.success(request, "Registrazione completata.")
-            return redirect("cinema:programmazione")  # adatta
+            return redirect("cinema:programmazione") 
     else:
         form = RegisterForm()
     return render(request, "accounts/register.html", {"form": form})
@@ -155,7 +147,7 @@ def mie_prenotazioni(request):
 
     items = []
     for b in qs:
-        can_cancel = now < (b.proiezione.data_ora - timedelta(hours=1))
+        can_cancel = now < (b.proiezione.data_ora - timedelta(hours=1)) # non si può disdire a meno di un'ora dalla proiezione
         items.append({
             "b": b,
             "can_cancel": can_cancel,

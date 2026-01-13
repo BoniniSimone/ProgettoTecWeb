@@ -15,7 +15,7 @@ class InfoView(FormView):
         email = form.cleaned_data["email"]
         _, created = NewsletterSubscription.objects.get_or_create(email=email)
 
-        # passiamo un esito al template (senza usare messages, se vuoi minimal)
+        # passiamo un esito al template (senza usare messages)
         self.request.session["newsletter_esito"] = "ok" if created else "exists"
         return super().form_valid(form)
 

@@ -90,7 +90,10 @@
 {% block content %}
 <form method="post">
   {% csrf_token %}
-  <input type="hidden" name="seat_ids" id="seat_ids" value="">
+  <input type="hidden" name="seat_ids" id="seat_ids" value=""> <!-- campo nascosto del form che si usa per i posti-->
+
+
+  <!-- INTESTAZIONE -->
 
   <div class="prenota-hero p-4 p-md-5 mb-4">
     <h1 class="h3 mb-3">Scegli il tuo posto</h1>
@@ -101,6 +104,8 @@
     </div>
   </div>
   
+
+  <!-- MAPPA DELLA SALA -->
 
   <div class="seat-map">
     <div class="screen mb-4">Schermo</div>
@@ -133,6 +138,9 @@
     </div>
   </div>
 
+
+  <!-- DATI CLIENTE CHE ORDINA IN SEGRETERIA/CHIAMATA -->
+
   {% if staff_mode %}
     <div class="mt-3 p-3 rounded" style="background:#111; color:#fff;">
       <div class="fw-semibold mb-2">Prenotazione in presenza (segreteria)</div>
@@ -151,6 +159,9 @@
       </div>
     </div>
   {% endif %}
+
+
+  <!-- CONFERMA PRENOTAZIONE -->
 
   <div class="d-flex flex-wrap gap-3 align-items-center mt-4">
     <button type="submit" class="btn btn-warning" id="btn_conferma" disabled>
@@ -172,16 +183,15 @@
 
 {% block extra_js %}
   <script>
-    const hidden = document.getElementById("seat_ids");
-    const btnConferma = document.getElementById("btn_conferma");
-    const counter = document.getElementById("counter");
+    const hidden = document.getElementById("seat_ids");            // contenitore posti selezionati
+    const btnConferma = document.getElementById("btn_conferma");   // bottone conferma prenotazione
+    const counter = document.getElementById("counter");            // scritta quanti posti selezionati
 
     function syncSelected() {
-      const selected = Array.from(document.querySelectorAll(".seat.selected"))
-        .map(b => b.dataset.seatId);
+      const selected = Array.from(document.querySelectorAll(".seat.selected")).map(b => b.dataset.seatId); //crea un arry dei posti selezionati
 
       hidden.value = selected.join(",");
-      btnConferma.disabled = selected.length === 0;
+      btnConferma.disabled = selected.length === 0; // === indica che i valori devono essere identici e avere lo stesso tipo
 
       if (counter) {
         counter.textContent = selected.length === 0

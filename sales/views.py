@@ -16,10 +16,11 @@ from decimal import Decimal
 
 class PrenotazioniFilmView(GroupRequiredMixin, DetailView):
     model = Film
-    group_required = ["segretario", "gestore_film"]
     pk_url_kwarg = "film_id"
     context_object_name = "film"
     template_name = "sales/prenotazioni_film.html"
+    group_required = ["segretario", "gestore_film"]
+    superuser_allowed = True
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -32,7 +33,7 @@ class PrenotazioniFilmView(GroupRequiredMixin, DetailView):
             .order_by("-proiezione__data_ora", "posto__fila", "posto__numero_posto")
         )
 
-        grouped = {}
+        grouped = {} #lo si usa con chiave=Proiezione e valore=Biglietto
         for b in biglietti:
             grouped.setdefault(b.proiezione, []).append(b)
 
@@ -43,14 +44,19 @@ class PrenotazioniFilmView(GroupRequiredMixin, DetailView):
         ctx["now"] = timezone.now()
         return ctx
 
+
+
 class BigliettoSegnaPagatoView(GroupRequiredMixin, View):
     group_required = ["segretario", "gestore_film"]
+    superuser_allowed = True
     
     def post(self, request, pk):
         biglietto = get_object_or_404(Biglietto, pk=pk)
         biglietto.stato = Biglietto.Stato.PAGATO
         biglietto.save(update_fields=["stato"])
         return redirect(request.META.get("HTTP_REFERER", "info"))
+
+
 
 class BigliettoStaffDeleteView(GroupRequiredMixin, DeleteView):
     model = Biglietto
@@ -76,20 +82,26 @@ def prenota(request, proiezione_id):
         id=proiezione_id,
     )
 
+    # blocca prenotazioni su proiezioni passate
+    now = timezone.now()
+    if proiezione.data_ora < now:
+        messages.error(request, "Non puoi prenotare: la proiezione è già passata.")
+        return redirect("cinema:programmazione")
+    
+    # blocca prenotazioni se il film non è ancora in programmazione
+    if proiezione.film.in_programmazione and proiezione.film.in_programmazione > now.date():
+        messages.error(request, "Non puoi prenotare: il film non è ancora in programmazione.")
+        return redirect("cinema:prossimamente")
+
     # -------- POST: crea i biglietti --------
     if request.method == "POST":
         # seat_ids arriva come "12,15,18"
         seat_ids_raw = (request.POST.get("seat_ids") or "").strip()
-        seat_ids = [s.strip() for s in seat_ids_raw.split(",") if s.strip()]
+        seat_ids = [s.strip() for s in seat_ids_raw.split(",") if s.strip()] #alla fine abbiamo una semplice lista di ID
 
         if not seat_ids:
             messages.error(request, "Seleziona almeno un posto.")
             return redirect("sales:prenota", proiezione_id=proiezione.id)
-
-        # (opzionale ma consigliato) richiedi login per prenotazione online
-        if not request.user.is_authenticated:
-            messages.error(request, "Devi essere autenticato per prenotare online.")
-            return redirect("login")  # o la tua login url
         
         staff_mode = is_operational_staff(request.user)
 
@@ -101,14 +113,14 @@ def prenota(request, proiezione_id):
         telefono_cliente = (request.POST.get("telefono_cliente") or "").strip()
 
         if staff_mode:
-            # obbliga almeno un dato cliente, altrimenti non ha senso “per chi”
+            # obbliga almeno un dato cliente
             if not (nome_cliente or telefono_cliente):
                 messages.error(request, "Inserisci nome e telefono del cliente.")
                 return redirect("sales:prenota", proiezione_id=proiezione.id)
 
 
         try:
-            with transaction.atomic():
+            with transaction.atomic():  # le prossime operazioni devono avvenire tutte insieme
 
                 if not staff_mode:
                     gia_prenotati = (
@@ -154,7 +166,7 @@ def prenota(request, proiezione_id):
         messages.success(request, "Prenotazione completata! Biglietti creati.")
         return redirect("sales:prenota", proiezione_id=proiezione.id)  # o profilo
 
-    # -------- GET: la tua logica attuale --------
+    # -------- GET --------
     posti = (
         Posto.objects
         .filter(sala=proiezione.sala)
@@ -208,7 +220,7 @@ def annulla_biglietto(request, biglietto_id):
         utente=request.user,   # impedisce annulli di altri utenti
     )
 
-    # Per sicurezza: accetta solo POST (evita annulli via link GET)
+    # Per sicurezza: accetta solo POST (evita annulli via GET)
     if request.method != "POST":
         messages.error(request, "Operazione non valida.")
         return redirect("accounts:mie_prenotazioni")
@@ -216,7 +228,7 @@ def annulla_biglietto(request, biglietto_id):
     now = timezone.now()
     limite = biglietto.proiezione.data_ora - timedelta(hours=1)
 
-    # NON annullabile da 1 ora prima in poi (quindi <= limite è bloccato)
+    # non annullabile da 1 ora prima della proiezione
     if now >= limite:
         messages.error(request, "Non puoi annullare: manca meno di 1 ora alla proiezione.")
         return redirect("accounts:mie_prenotazioni")

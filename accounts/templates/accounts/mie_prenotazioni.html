@@ -3,7 +3,7 @@
 
 {% block content %}
 
-{% if profile_user %}
+{% if profile_user %} <!-- se non siamo dello staff 'profile_user' non esiste -->
   <center>
     <h1>Prenotazioni di: {{ profile_user.username }}</h1>
   </center>
